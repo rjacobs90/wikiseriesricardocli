@@ -36,6 +36,8 @@ import logging.config
 import json
 import argparse
 import coloredlogs
+import requests
+from bs4 import BeautifulSoup as Bfs
 
 
 __author__ = '''Ricardo Jacobs <ricardojacobs20@gmail.com>'''
@@ -82,20 +84,20 @@ def get_arguments():
                                  'critical'])
 
     # examples:
-    parser.add_argument('--long', '-s',
-                        choices=['a', 'b'],
-                        dest='parameter_long',
+
+    parser.add_argument('--name', '-n',
+                        dest='name',
                         action='store',
-                        help='Describe the parameter here',
-                        default='a',
+                        help='Name of the Series you are trying to query',
                         type=str,
                         required=True)
-    parser.add_argument('--feature',
-                        dest='feature',
-                        action='store_true')
-    parser.add_argument('--no-feature',
-                        dest='feature',
-                        action='store_false')
+
+    # parser.add_argument('--feature',
+    #                     dest='feature',
+    #                     action='store_true')
+    # parser.add_argument('--no-feature',
+    #                     dest='feature',
+    #                     action='store_false')
     args = parser.parse_args()
     return args
 
@@ -137,8 +139,30 @@ def main():
     the script is run on command line.
     """
     args = get_arguments()
+    search_series(args.name)
     setup_logging(args.log_level, args.logger_config)
-    # Main code goes here
+
+
+def search_series(name):
+    api_url = 'https://en.wikipedia.org/w/api.php'
+    limit = 10
+    term = f'List_of_{name}_episodes'
+    parameters = {'action': 'opensearch',
+                  'format': 'json',
+                  'formatversion': '1',
+                  'namespace': '0',
+                  'limit': limit,
+                  'search': term}
+    search_response = requests.get(api_url, params=parameters, timeout=10)
+    series_url = search_response.json()[3][0]
+    series_response = requests.get(series_url, timeout=10)
+    soup = Bfs(series_response.text, features="html.parser")
+    season_table = soup.find('table', class_='wikitable')
+    seasons_numbers = [item.text for item in season_table.find_all('span', class_='nowrap')]
+    season_episodes = soup.find_all('table', class_='wikiepisodetable')
+    return {f'Season {key}': [entry.text.split('"')[1]
+                              for entry in value.find_all('td', class_='summary')]
+            for key, value in zip(seasons_numbers, season_episodes)}
 
 
 if __name__ == '__main__':

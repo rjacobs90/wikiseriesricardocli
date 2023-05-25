@@ -45,7 +45,7 @@ setup(
                    'console_scripts': [
                        # enable this to automatically generate a script in /usr/local/bin called myscript that points to your
                        #  wikiseriesricardocli.wikiseriesricardocli:main method
-                       # 'myscript = wikiseriesricardocli.wikiseriesricardocli:main'
+                       'wiki-series = wikiseriesricardocli.wikiseriesricardocli:main'
                    ]},
     classifiers=[
         'Development Status :: 3 - Alpha',
